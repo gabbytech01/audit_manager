@@ -1,41 +1,50 @@
 #!/bin/bash
 
-# Define variables
-LOG_DIR="audit_logs"
-PREFIX="security_audit"
+# System Log Manager & Security Auditor
+# Parses local authentication logs for security review and reporting.
 
-echo "[*] Initializing Log Manager..."
+REPORT_DIR="audit_reports"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+REPORT_FILE="$REPORT_DIR/log_audit_${TIMESTAMP}.txt"
 
-# 1. Check and create directory
-if [ ! -d "$LOG_DIR" ]; then
-    mkdir "$LOG_DIR"
-    echo "[+] Created directory: $LOG_DIR"
+echo "[*] Initializing System Log Auditor..."
+
+# 1. Ensure report directory exists
+mkdir -p "$REPORT_DIR"
+
+# Initialize report header
+echo "==========================================" > "$REPORT_FILE"
+echo " SYSTEM SECURITY LOG AUDIT REPORT         " >> "$REPORT_FILE"
+echo " Generated at: $(date)                    " >> "$REPORT_FILE"
+echo "==========================================" >> "$REPORT_FILE"
+echo "" >> "$REPORT_FILE"
+
+# 2. Audit Failed SSH Logins (Brute Force Detection)
+echo "[*] Scanning system logs for failed login attempts..."
+echo "--- FAILED LOGIN ATTEMPTS ---" >> "$REPORT_FILE"
+
+if command -v journalctl &> /dev/null; then
+    journalctl -u ssh --no-pager 2>/dev/null | grep "Failed password" >> "$REPORT_FILE"
+elif [ -f /var/log/auth.log ]; then
+    grep "Failed password" /var/log/auth.log >> "$REPORT_FILE"
 else
-    echo "[*] Directory $LOG_DIR already exists."
+    echo "[!] Warning: Could not access standard auth logs." >> "$REPORT_FILE"
+fi
+echo "" >> "$REPORT_FILE"
+
+# 3. Audit Sudo Command Executions (Privilege Tracking)
+echo "[*] Scanning recent administrative sudo activity..."
+echo "--- SUDO COMMAND AUDIT ---" >> "$REPORT_FILE"
+
+if command -v journalctl &> /dev/null; then
+    journalctl _COMM=sudo --no-pager 2>/dev/null | tail -n 25 >> "$REPORT_FILE"
+elif [ -f /var/log/auth.log ]; then
+    grep "sudo:" /var/log/auth.log | tail -n 25 >> "$REPORT_FILE"
 fi
 
-# 2. Generate 5 timestamped mock log files using a loop
-for i in {1..5}
-do
-    filename="$LOG_DIR/${PREFIX}_${i}.log"
-    echo "[INFO] Mock security scan executed at $(date)" > "$filename"
-    echo "[+] Generated: $filename"
-done
-
-# 3. Validation check
-echo "[*] Verifying file generation..."
-file_count=$(ls -1 "$LOG_DIR" | wc -l)
-if [ "$file_count" -ge 5 ]; then
-    echo "[SUCCESS] Verification passed: $file_count files present in $LOG_DIR."
-else
-    echo "[-] Warning: Expected at least 5 files, found $file_count."
-fi
-
-# 4. Interactive cleanup choice
-read -p "[?] Do you want to clean up (delete) these generated logs? (y/n): " choice
-if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    rm -rf "$LOG_DIR"
-    echo "[-] Cleanup complete: $LOG_DIR removed."
-else
-    echo "[*] Files preserved in $LOG_DIR."
-fi
+# 4. Completion & Summary
+echo "[SUCCESS] Audit complete!"
+echo "[*] Report securely compiled to: ${REPORT_FILE}"
+echo "[*] Displaying report summary..."
+echo "------------------------------------------"
+cat "$REPORT_FILE"
