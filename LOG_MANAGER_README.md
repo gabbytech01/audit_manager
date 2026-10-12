@@ -1,18 +1,45 @@
-# Automated Log & Artifact Manager (`log_manager.sh`)
+# System Security Log Auditor (`log_manager.sh`)
 
 ## Project Overview
-A modular Bash automation script designed to manage security audit logs and test artifacts. This tool demonstrates core Linux shell scripting concepts including conditional directory validation, dynamic loop generation, file system verification, and user-prompted cleanups.
+A robust, modular Bash automation script designed for Linux system administration and security auditing. This tool automates the extraction, parsing, and reporting of critical security events from local system logs, providing rapid visibility into authentication failures and privileged activity.
 
 ## Features Demonstrated
-* **Variables & Shebang:** Clean execution headers and variable scoping for file prefixes and target directories.
-* **Directory Automation:** Checks if the target `audit_logs` directory exists; creates it dynamically if absent.
-* **Loop Iteration:** Automatically generates multiple formatted log files (`security_audit_1.log` through `security_audit_5.log`) containing runtime timestamps.
-* **Validation Logic:** Uses `ls` and `wc -l` to verify that the expected number of files were successfully written.
-* **Interactive Control Flow:** Prompts the user via input (`read -p`) to decide whether to preserve or purge the generated artifacts.
+- **Dynamic Directory & Timestamping:** Automatically structures output directories (`audit_reports/`) and generates unique timestamped audit logs to prevent file overwrites.
+- **Brute-Force Detection:** Queries system logs (`journalctl` / `auth.log`) to isolate failed login attempts and unauthorized access vectors.
+- **Privilege Escalation Tracking:** Filters and extracts recent administrative `sudo` and `su` commands to maintain a clear accountability trail of system modifications.
+- **Dual Output Architecture:** Compiles findings into a secure file report while simultaneously rendering a live summary directly to the terminal.
+
+## Prerequisites
+- Linux Operating System (Tested on Parrot OS / Ubuntu / Debian)
+- Standard utilities: `bash`, `grep`, `journalctl` (or standard auth logs)
 
 ## Usage Instructions
 
 1. Clone or download the script into your working environment.
 2. Grant execution permissions:
-   ```bash
-   chmod +x log_manager.sh
+
+
+bash
+chmod +x log_manager.sh
+
+3. Run the auditor:
+
+bash
+./log_manager.sh
+
+4. Review generated reports inside the `audit_reports/` directory.
+
+## Sample Output Structure
+
+text
+==========================================
+SYSTEM SECURITY LOG AUDIT REPORT
+
+Generated at: ma 12 okt 2026 16:12:24 CEST
+==========================================
+
+--- FAILED LOGIN ATTEMPTS ---
+(Clean / No unauthorized failures detected)
+
+--- SUDO COMMAND AUDIT ---
+okt 08 11:27:48 parrot sudo[5239]: cybergabby : COMMAND=/usr/local/bin/apt upgrade sqlmap
